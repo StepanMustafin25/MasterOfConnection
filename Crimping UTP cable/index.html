@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Обжим UTP (T568B) — мини-игра</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <header class="topbar">
+        <div class="topbar__left">
+          <div class="title">Обжим UTP — T568B</div>
+          <div class="modeSwitch">
+            <button id="btnModeLearn" class="modeBtn modeBtn--learn modeBtn--active" type="button" aria-label="Обучение"></button>
+            <button id="btnModeEvaluate" class="modeBtn modeBtn--eval" type="button" aria-label="Оценка" disabled></button>
+          </div>
+          <div id="modeText" class="subtitle">Режим обучения</div>
+        </div>
+        <div class="topbar__right">
+          <div id="attemptText" class="pill pill--neutral">Попытка: —</div>
+          <div id="statusText" class="status">—</div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel panel--cable">
+          <div class="panel__title">Сборка жил (T568B)</div>
+          <div class="cableStage" aria-label="кабель и жилы">
+            <div class="assembly" id="assembly">
+              <div class="assembly__wiresRow" id="assemblyWires" aria-label="жилы из кабеля"></div>
+              <img
+                id="assemblyConnector"
+                class="assembly__connector"
+                src="./Connector.png"
+                alt="Коннектор RG-45"
+                draggable="false"
+                hidden
+              />
+              <div class="assembly__cableBlock">
+                <div id="bundle" class="bundle" aria-hidden="true"></div>
+                <img class="assembly__cable" src="./Cabel.png" alt="Кабель T568B" draggable="false" />
+              </div>
+            </div>
+            <div id="palette" class="palette" aria-label="жилы для перетаскивания"></div>
+          </div>
+
+          <div class="controls">
+            <button id="btnUntangle" class="btn btn--primary" type="button">Распутать пары</button>
+            <button id="btnResetLearn" class="btn btn--ghost" type="button" title="Сбросить обучение">В обучение заново</button>
+          </div>
+        </section>
+
+        <section class="panel panel--wire">
+          <div class="panel__title">Схема подключения RG-45 (T568B)</div>
+
+          <div id="legend" class="legend" aria-label="подсказки (обучение)"></div>
+
+          <div class="connectorArea">
+            <div id="connectorHintText" class="connectorHint">Нужно вставить жилы по порядку, и затем надеть коннектор</div>
+            <button id="btnAttach" class="btn btn--success" type="button" disabled>Надеть RG-45</button>
+            <button id="btnBackToLearnEval" class="btn btn--ghost" type="button" hidden>Вернуться в обучение</button>
+          </div>
+
+          <div id="slots" class="slots" aria-label="места для жил"></div>
+
+          <div id="failBox" class="failBox" role="alert" hidden>
+            <div class="failBox__title">Попытка не зачтена</div>
+            <div id="failReason" class="failBox__reason">—</div>
+            <div class="failBox__actions">
+              <button id="btnRetry" class="btn btn--primary" type="button">Повторить оценку</button>
+              <button id="btnBackToLearn" class="btn btn--ghost" type="button">Вернуться в обучение</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="dragLayer" class="dragLayer" aria-hidden="true"></div>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
