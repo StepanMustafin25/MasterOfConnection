@@ -1,4 +1,4 @@
-/** PNG жилы (появляются из кабеля только при правильной установке в позицию). */
+/** PNG жилы */
 const WIRE_IMAGE = {
   WO: "./orange-white.png",
   O: "./orange.png",
@@ -10,7 +10,7 @@ const WIRE_IMAGE = {
   C: "./brown.png",
 };
 
-/** Иконки цветов (для подсказок, слотов и перетаскиваемых элементов). */
+/** Иконки цветов */
 const ICON_IMAGE = {
   WO: "./orange-white-icon.png",
   O: "./orange-icon.png",
@@ -22,7 +22,7 @@ const ICON_IMAGE = {
   C: "./brown-icon.png",
 };
 
-/** Запутанные пары (клик — распутать в две жилы). */
+/** Запутанные пары */
 const TANGLED_PAIR = [
   { id: "OR", img: "./orange-white-zaputann.png", out: ["WO", "O"] },
   { id: "GR", img: "./green-white-zaputann.png", out: ["WG", "G"] },
@@ -42,7 +42,6 @@ const T568B = [
 ];
 
 function wireCss(key) {
-  // Two-tone wires look closer to real “white-striped” conductors.
   const OR = "#f57c00";
   const GR = "#2e7d32";
   const BL = "#1976d2";
@@ -108,26 +107,25 @@ const DOM = {
   assemblyConnector: document.getElementById("assemblyConnector"),
 };
 
-let mode = "learn"; // learn | evaluate
-let trainingCompleted = false; // whether user already passed the training for this “session”
+let mode = "learn"; 
+let trainingCompleted = false; 
 let evaluateAttempt = 0;
 
 let unscrambled = false;
 let connectorAttached = false;
 let failLocked = false;
 
-let placed = Array(8).fill(null); // slotIndex -> wireKey | null
-let wireOrder = []; // order of wires shown in palette (filled after untangling)
+let placed = Array(8).fill(null); 
+let wireOrder = []; 
 
-// Stage: first untangle 4 pairs, then arrange 8 wires.
-let stage = "tangle"; // tangle | arrange
-let tangledSlots = Array(8).fill(null); // slotIndex -> tangledPairId | null
-let availableWireKeys = []; // keys available to drag after untangling
+let stage = "tangle"; 
+let tangledSlots = Array(8).fill(null); 
+let availableWireKeys = []; 
 
 const wireByKey = new Map(T568B.map((w) => [w.key, w]));
 const tangledById = new Map(TANGLED_PAIR.map((p) => [p.id, p]));
 
-let dragging = null; // { wireKey, cloneEl }
+let dragging = null; 
 let lastHintSlotIndex = -1;
 
 function setStatus(text) {
@@ -141,17 +139,13 @@ function setMode(nextMode) {
 
   DOM.btnResetLearn.style.display = "inline-flex";
 
-  // Legend visibility
   DOM.legend.style.display = mode === "learn" ? "grid" : "none";
 
-  // Connector hint text only in learning.
   DOM.connectorHintText.style.display = mode === "learn" ? "block" : "none";
 
-  // Mode buttons active state
   DOM.btnModeLearn.classList.toggle("modeBtn--active", mode === "learn");
   DOM.btnModeEvaluate.classList.toggle("modeBtn--active", mode === "evaluate");
 
-  // Evaluation mode lock (until training completed)
   DOM.btnModeEvaluate.disabled = !trainingCompleted;
 }
 
@@ -390,7 +384,6 @@ function untanglePairAt(slotIndex) {
   const pair = tangledById.get(pairId);
   tangledSlots[slotIndex] = null;
 
-  // Add both wires to available list (shuffle after each untangle for randomness).
   availableWireKeys.push(pair.out[0], pair.out[1]);
   wireOrder = shuffle(availableWireKeys);
 
@@ -437,7 +430,6 @@ function onWirePointerDown(e, wireKey, el) {
   if (stage !== "arrange") return;
   if (!unscrambled) return;
 
-  // If this wire is already placed somewhere, ignore.
   if (placed.includes(wireKey)) return;
 
   e.preventDefault();
@@ -447,7 +439,6 @@ function onWirePointerDown(e, wireKey, el) {
 
   const clone = el.cloneNode(true);
   clone.classList.add("dragClone");
-  // Override pointer events to keep drag uninterrupted.
   clone.style.pointerEvents = "none";
 
   DOM.dragLayer.appendChild(clone);
@@ -458,7 +449,6 @@ function onWirePointerDown(e, wireKey, el) {
   clone.style.top = `${startY - dragging.offsetY}px`;
   setStatus(mode === "learn" ? "Перетащите жилу в нужный номер." : "Перетащите жилу в нужный слот.");
 
-  // Start tracking on window for smoother dragging.
   const move = (ev) => {
     if (!dragging) return;
     const x = ev.clientX - dragging.offsetX;
@@ -498,7 +488,6 @@ function onWirePointerDown(e, wireKey, el) {
       const idx = Number(slotEl.dataset.slotIndex);
       tryPlaceWire(wireKeyNow, idx);
     } catch {
-      // No-op: drag drop is best-effort.
     }
   };
 
@@ -528,7 +517,6 @@ function attachConnector() {
     return;
   }
 
-  // Evaluate mode: validate on click.
   let correctCount = 0;
   for (let i = 0; i < 8; i++) {
     if (placed[i] === T568B[i].key) correctCount += 1;
@@ -577,14 +565,12 @@ function retryEvaluate() {
 }
 
 function backToLearnFromFail() {
-  // If the user “forgot”, they need to retrain fully.
   trainingCompleted = false;
   setMode("learn");
   resetStateForMode("learn");
   setStatus("Вернулись в обучение. Пройдите подсказки и затем снова перейдёте к оценке.");
 }
 
-// Events
 DOM.btnResetLearn.addEventListener("click", resetLearnAndStartOver);
 DOM.btnAttach.addEventListener("click", attachConnector);
 DOM.btnRetry.addEventListener("click", retryEvaluate);
@@ -605,7 +591,6 @@ DOM.btnModeEvaluate.addEventListener("click", () => {
   setStatus("Оценка: подсказки отключены. Сначала распутайте 4 пары (клик по запутанным).");
 });
 
-// Start
 function init() {
   setMode("learn");
   resetStateForMode("learn");
