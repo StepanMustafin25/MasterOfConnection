@@ -10,7 +10,7 @@
     <div id="app" class="app">
       <header class="topbar">
         <div class="topbar__left">
-          <div class="title">Обжим UTP — T568B</div>
+          <div class="title">Обжим UTP кабеля (стандарт Т568В)</div>
           <div class="modeSwitch">
             <button id="btnModeLearn" class="modeBtn modeBtn--learn modeBtn--active" type="button" aria-label="Обучение"></button>
             <button id="btnModeEvaluate" class="modeBtn modeBtn--eval" type="button" aria-label="Оценка" disabled></button>
@@ -18,14 +18,18 @@
           <div id="modeText" class="subtitle">Режим обучения</div>
         </div>
         <div class="topbar__right">
-          <div id="attemptText" class="pill pill--neutral">Попытка: —</div>
+          <div id="attemptText" class="attemptBadge" aria-label="Попытка">
+            <div class="attemptBadge__value">
+              <span id="attemptValue">—</span>
+            </div>
+          </div>
           <div id="statusText" class="status">—</div>
         </div>
       </header>
 
       <main class="layout">
         <section class="panel panel--cable">
-          <div class="panel__title">Сборка жил (T568B)</div>
+          <div class="panel__title">Схема подключения RG-45 к T568B</div>
           <div class="cableStage" aria-label="кабель и жилы">
             <div class="assembly" id="assembly">
               <div class="assembly__wiresRow" id="assemblyWires" aria-label="жилы из кабеля"></div>
@@ -42,34 +46,50 @@
                 <img class="assembly__cable" src="./Cabel.png" alt="Кабель T568B" draggable="false" />
               </div>
             </div>
-            <div id="palette" class="palette" aria-label="жилы для перетаскивания"></div>
           </div>
 
-          <div class="controls">
-            <button id="btnUntangle" class="btn btn--primary" type="button">Распутать пары</button>
-            <button id="btnResetLearn" class="btn btn--ghost" type="button" title="Сбросить обучение">В обучение заново</button>
-          </div>
+          <div class="controls"></div>
         </section>
 
         <section class="panel panel--wire">
-          <div class="panel__title">Схема подключения RG-45 (T568B)</div>
+          <div class="panelHeader">
+            <div class="panel__title">Сборка жил по схеме T568B</div>
+            <button
+              id="btnResetLearn"
+              class="imgBtn imgBtn--restart"
+              type="button"
+              aria-label="Заново"
+              title="Заново"
+            ></button>
+          </div>
 
           <div id="legend" class="legend" aria-label="подсказки (обучение)"></div>
 
           <div class="connectorArea">
             <div id="connectorHintText" class="connectorHint">Нужно вставить жилы по порядку, и затем надеть коннектор</div>
-            <button id="btnAttach" class="btn btn--success" type="button" disabled>Надеть RG-45</button>
-            <button id="btnBackToLearnEval" class="btn btn--ghost" type="button" hidden>Вернуться в обучение</button>
+            <button
+              id="btnAttach"
+              class="imgBtn imgBtn--attach"
+              type="button"
+              aria-label="Надеть коннектор"
+              title="Надеть коннектор"
+              disabled
+            ></button>
           </div>
 
           <div id="slots" class="slots" aria-label="места для жил"></div>
+
+          <div class="paletteWrap">
+            <div class="paletteTitle">Жилы</div>
+            <div id="palette" class="palette palette--grid" aria-label="жилы для перетаскивания"></div>
+          </div>
 
           <div id="failBox" class="failBox" role="alert" hidden>
             <div class="failBox__title">Попытка не зачтена</div>
             <div id="failReason" class="failBox__reason">—</div>
             <div class="failBox__actions">
-              <button id="btnRetry" class="btn btn--primary" type="button">Повторить оценку</button>
-              <button id="btnBackToLearn" class="btn btn--ghost" type="button">Вернуться в обучение</button>
+              <button id="btnRetry" class="imgBtn imgBtn--retry" type="button" aria-label="Повторить попытку" title="Повторить попытку"></button>
+              <button id="btnBackToLearn" class="imgBtn imgBtn--return" type="button" aria-label="Вернуться в обучение" title="Вернуться в обучение"></button>
             </div>
           </div>
         </section>

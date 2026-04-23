@@ -1,3 +1,4 @@
+/** PNG жилы (появляются из кабеля только при правильной установке в позицию). */
 const WIRE_IMAGE = {
   WO: "./orange-white.png",
   O: "./orange.png",
@@ -9,15 +10,35 @@ const WIRE_IMAGE = {
   C: "./brown.png",
 };
 
+/** Иконки цветов (для подсказок, слотов и перетаскиваемых элементов). */
+const ICON_IMAGE = {
+  WO: "./orange-white-icon.png",
+  O: "./orange-icon.png",
+  WG: "./green-white-icon.png",
+  B: "./blue-icon.png",
+  WB: "./blue-white-icon.png",
+  G: "./green-icon.png",
+  WC: "./brown-white-icon.png",
+  C: "./brown-icon.png",
+};
+
+/** Запутанные пары (клик — распутать в две жилы). */
+const TANGLED_PAIR = [
+  { id: "OR", img: "./orange-white-zaputann.png", out: ["WO", "O"] },
+  { id: "GR", img: "./green-white-zaputann.png", out: ["WG", "G"] },
+  { id: "BL", img: "./blue-white-zaputann.png", out: ["WB", "B"] },
+  { id: "BR", img: "./brown-white-zaputann.png", out: ["WC", "C"] },
+];
+
 const T568B = [
-  { key: "WO", name: "Бело-оранжевый", targetPos: 1, css: wireCss("WO"), img: WIRE_IMAGE.WO },
-  { key: "O", name: "Оранжевый", targetPos: 2, css: wireCss("O"), img: WIRE_IMAGE.O },
-  { key: "WG", name: "Бело-зелёный", targetPos: 3, css: wireCss("WG"), img: WIRE_IMAGE.WG },
-  { key: "B", name: "Синий", targetPos: 4, css: wireCss("B"), img: WIRE_IMAGE.B },
-  { key: "WB", name: "Бело-синий", targetPos: 5, css: wireCss("WB"), img: WIRE_IMAGE.WB },
-  { key: "G", name: "Зелёный", targetPos: 6, css: wireCss("G"), img: WIRE_IMAGE.G },
-  { key: "WC", name: "Бело-коричневый", targetPos: 7, css: wireCss("WC"), img: WIRE_IMAGE.WC },
-  { key: "C", name: "Коричневый", targetPos: 8, css: wireCss("C"), img: WIRE_IMAGE.C },
+  { key: "WO", name: "Бело-оранжевый", targetPos: 1, css: wireCss("WO"), img: WIRE_IMAGE.WO, icon: ICON_IMAGE.WO },
+  { key: "O", name: "Оранжевый", targetPos: 2, css: wireCss("O"), img: WIRE_IMAGE.O, icon: ICON_IMAGE.O },
+  { key: "WG", name: "Бело-зелёный", targetPos: 3, css: wireCss("WG"), img: WIRE_IMAGE.WG, icon: ICON_IMAGE.WG },
+  { key: "B", name: "Синий", targetPos: 4, css: wireCss("B"), img: WIRE_IMAGE.B, icon: ICON_IMAGE.B },
+  { key: "WB", name: "Бело-синий", targetPos: 5, css: wireCss("WB"), img: WIRE_IMAGE.WB, icon: ICON_IMAGE.WB },
+  { key: "G", name: "Зелёный", targetPos: 6, css: wireCss("G"), img: WIRE_IMAGE.G, icon: ICON_IMAGE.G },
+  { key: "WC", name: "Бело-коричневый", targetPos: 7, css: wireCss("WC"), img: WIRE_IMAGE.WC, icon: ICON_IMAGE.WC },
+  { key: "C", name: "Коричневый", targetPos: 8, css: wireCss("C"), img: WIRE_IMAGE.C, icon: ICON_IMAGE.C },
 ];
 
 function wireCss(key) {
@@ -59,7 +80,7 @@ function shuffle(arr) {
 
 const DOM = {
   modeText: document.getElementById("modeText"),
-  attemptText: document.getElementById("attemptText"),
+  attemptValue: document.getElementById("attemptValue"),
   statusText: document.getElementById("statusText"),
 
   bundle: document.getElementById("bundle"),
@@ -68,7 +89,6 @@ const DOM = {
   slots: document.getElementById("slots"),
   legend: document.getElementById("legend"),
 
-  btnUntangle: document.getElementById("btnUntangle"),
   btnResetLearn: document.getElementById("btnResetLearn"),
 
   btnAttach: document.getElementById("btnAttach"),
@@ -78,7 +98,6 @@ const DOM = {
   failReason: document.getElementById("failReason"),
   btnRetry: document.getElementById("btnRetry"),
   btnBackToLearn: document.getElementById("btnBackToLearn"),
-  btnBackToLearnEval: document.getElementById("btnBackToLearnEval"),
 
   btnModeLearn: document.getElementById("btnModeLearn"),
   btnModeEvaluate: document.getElementById("btnModeEvaluate"),
@@ -98,9 +117,15 @@ let connectorAttached = false;
 let failLocked = false;
 
 let placed = Array(8).fill(null); // slotIndex -> wireKey | null
-let wireOrder = []; // shuffled order for palette / bundle
+let wireOrder = []; // order of wires shown in palette (filled after untangling)
+
+// Stage: first untangle 4 pairs, then arrange 8 wires.
+let stage = "tangle"; // tangle | arrange
+let tangledSlots = Array(8).fill(null); // slotIndex -> tangledPairId | null
+let availableWireKeys = []; // keys available to drag after untangling
 
 const wireByKey = new Map(T568B.map((w) => [w.key, w]));
+const tangledById = new Map(TANGLED_PAIR.map((p) => [p.id, p]));
 
 let dragging = null; // { wireKey, cloneEl }
 let lastHintSlotIndex = -1;
@@ -114,9 +139,7 @@ function setMode(nextMode) {
   DOM.modeText.textContent = mode === "learn" ? "Режим обучения" : "Режим оценки";
   setStatus(mode === "learn" ? "Подсказки включены" : "Подсказки отключены");
 
-  DOM.btnResetLearn.style.display = mode === "learn" ? "inline-flex" : "none";
-  DOM.btnBackToLearnEval.hidden = mode !== "evaluate";
-  DOM.btnBackToLearnEval.disabled = false;
+  DOM.btnResetLearn.style.display = "inline-flex";
 
   // Legend visibility
   DOM.legend.style.display = mode === "learn" ? "grid" : "none";
@@ -137,19 +160,31 @@ function resetStateForMode(nextMode) {
   connectorAttached = false;
   failLocked = false;
   placed = Array(8).fill(null);
-  wireOrder = shuffle(T568B.map((w) => w.key));
+  wireOrder = [];
   lastHintSlotIndex = -1;
+  stage = "tangle";
+  availableWireKeys = [];
+  tangledSlots = initRandomTangledSlots();
 
   DOM.failBox.hidden = true;
   DOM.btnAttach.disabled = true;
 
-  // Коннектор: сброс анимации
   if (DOM.assemblyConnector) {
     DOM.assemblyConnector.classList.remove("assembly__connector--on");
     DOM.assemblyConnector.hidden = true;
   }
 
   render();
+}
+
+function initRandomTangledSlots() {
+  const slots = Array(8).fill(null);
+  const pos = shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, 4);
+  const pairIds = shuffle(TANGLED_PAIR.map((p) => p.id));
+  for (let i = 0; i < 4; i++) {
+    slots[pos[i]] = pairIds[i];
+  }
+  return slots;
 }
 
 function renderLegend() {
@@ -162,7 +197,7 @@ function renderLegend() {
     num.textContent = w.targetPos;
     const bar = document.createElement("div");
     bar.className = "legendItem__bar";
-    bar.style.backgroundImage = `url("${w.img}")`;
+    bar.style.backgroundImage = `url("${w.icon}")`;
     bar.style.backgroundSize = "cover";
     bar.style.backgroundPosition = "center";
     const name = document.createElement("div");
@@ -195,7 +230,7 @@ function renderSlots() {
       const filled = document.createElement("div");
       filled.className = "slot__filled";
       const pw = wireByKey.get(placed[i]);
-      filled.style.backgroundImage = `url("${pw.img}")`;
+      filled.style.backgroundImage = `url("${pw.icon}")`;
       filled.style.backgroundSize = "cover";
       filled.style.backgroundPosition = "center";
       slot.appendChild(filled);
@@ -206,17 +241,7 @@ function renderSlots() {
 }
 
 function renderBundle() {
-  // Before “untangle”, show a “tangled bundle” (not draggable).
   DOM.bundle.innerHTML = "";
-  for (const wireKey of wireOrder) {
-    const peg = document.createElement("div");
-    peg.className = "bundle__peg";
-    const w = wireByKey.get(wireKey);
-    peg.style.backgroundImage = `url("${w.img}")`;
-    peg.style.backgroundSize = "cover";
-    peg.style.backgroundPosition = "center";
-    DOM.bundle.appendChild(peg);
-  }
 }
 
 function renderPalette() {
@@ -227,7 +252,7 @@ function renderPalette() {
     const el = document.createElement("div");
     el.className = "wire";
     el.dataset.wireKey = wireKey;
-    el.style.backgroundImage = `url("${w.img}")`;
+    el.style.backgroundImage = `url("${w.icon}")`;
     el.style.backgroundSize = "cover";
     el.style.backgroundPosition = "center";
 
@@ -237,7 +262,6 @@ function renderPalette() {
     if (w.name.length > 12) label.className = "wire__label wire__label--tiny";
     el.appendChild(label);
 
-    // Pointer-based drag (works with touch better than HTML5 drag & drop)
     el.addEventListener("pointerdown", (e) => onWirePointerDown(e, wireKey, el));
 
     DOM.palette.appendChild(el);
@@ -264,31 +288,23 @@ function updateTrainingHintsHover(wireKey, slotIndex) {
     if (slotEl) slotEl.classList.add("slot--hintCorrect");
     lastHintSlotIndex = slotIndex;
   } else {
-    // Do not show "wrong" hint in training — only show green when correct.
     lastHintSlotIndex = -1;
   }
 }
 
 function render() {
-  // Header
-  const attemptText = mode === "learn" ? "Попытка: —" : `Попытка: ${evaluateAttempt}`;
-  DOM.attemptText.textContent = attemptText;
-
-  DOM.btnUntangle.disabled = failLocked || connectorAttached;
+  if (DOM.attemptValue) {
+    DOM.attemptValue.textContent = mode === "learn" ? "—" : String(evaluateAttempt);
+  }
 
   renderSlots();
   if (mode === "learn") {
     renderLegend();
   }
-  if (!unscrambled) {
-    DOM.palette.innerHTML = "";
-    DOM.palette.style.display = "none";
-    renderBundle();
-  } else {
-    DOM.bundle.innerHTML = "";
-    DOM.palette.style.display = "flex";
-    renderPalette();
-  }
+  DOM.bundle.innerHTML = "";
+  DOM.palette.style.display = "grid";
+  DOM.palette.classList.add("palette--grid");
+  renderPalette();
 
   renderAssemblyWires();
   if (connectorAttached) setAssemblyConnectorVisible(true);
@@ -297,8 +313,7 @@ function render() {
   const complete = placed.every((x) => x !== null);
   const allCorrect = isAllSlotsCorrect();
 
-  // Learn: attach only when everything is correct.
-  // Evaluate: attach enabled when all slots filled; validation happens on click.
+
   const attachLocked = failLocked || connectorAttached || !complete;
   DOM.btnAttach.disabled =
     mode === "learn" ? attachLocked || !allCorrect : attachLocked;
@@ -326,7 +341,6 @@ function setAssemblyConnectorVisible(visible) {
   el.classList.add("assembly__connector--on");
 }
 
-/** Жилы из кабеля: PNG только если в позиции i стоит правильная жила для T568B. */
 function renderAssemblyWires() {
   if (!DOM.assemblyWires) return;
   DOM.assemblyWires.innerHTML = "";
@@ -335,9 +349,22 @@ function renderAssemblyWires() {
     col.className = "assemblyCol";
     col.dataset.slotIndex = String(i);
 
+    if (stage === "tangle" && tangledSlots[i] !== null) {
+      const pair = tangledById.get(tangledSlots[i]);
+      const img = document.createElement("img");
+      img.className = "assemblyWireImg";
+      img.src = pair.img;
+      img.alt = "Запутанная пара жил";
+      img.draggable = false;
+      img.style.cursor = "pointer";
+      img.addEventListener("click", () => untanglePairAt(i));
+      col.appendChild(img);
+      DOM.assemblyWires.appendChild(col);
+      continue;
+    }
+
     const key = placed[i];
-    const correct = key !== null && key === T568B[i].key;
-    if (correct) {
+    if (key !== null) {
       const img = document.createElement("img");
       img.className = "assemblyWireImg";
       img.src = wireByKey.get(key).img;
@@ -355,8 +382,33 @@ function renderAssemblyWires() {
   }
 }
 
+function untanglePairAt(slotIndex) {
+  if (stage !== "tangle") return;
+  const pairId = tangledSlots[slotIndex];
+  if (!pairId) return;
+
+  const pair = tangledById.get(pairId);
+  tangledSlots[slotIndex] = null;
+
+  // Add both wires to available list (shuffle after each untangle for randomness).
+  availableWireKeys.push(pair.out[0], pair.out[1]);
+  wireOrder = shuffle(availableWireKeys);
+
+  setStatus("Пара распутана. Распутайте остальные.");
+
+  const remaining = tangledSlots.filter(Boolean).length;
+  if (remaining === 0) {
+    stage = "arrange";
+    unscrambled = true;
+    setStatus("Пары распутаны. Теперь расставьте жилы в нужном порядке.");
+  }
+
+  render();
+}
+
 function tryPlaceWire(wireKey, slotIndex) {
   if (failLocked || connectorAttached) return;
+  if (stage !== "arrange") return;
   if (!unscrambled) return;
 
   if (placed[slotIndex] !== null) return;
@@ -366,25 +418,23 @@ function tryPlaceWire(wireKey, slotIndex) {
 
   const correct = w.targetPos === slotIndex + 1;
   if (mode === "learn" && !correct) {
-    // Error feedback in training: do not place wrong wire.
-    placed[slotIndex] = null;
     const slotEl = DOM.slots.querySelector(`[data-slot-index="${slotIndex}"]`);
     if (slotEl) {
       slotEl.classList.remove("slot--error");
       void slotEl.offsetWidth;
       slotEl.classList.add("slot--error");
     }
-    setStatus("Неверно в этом месте. Попробуйте снова.");
-    return;
+    setStatus("Жила вставлена. Похоже, место неверное - проверьте порядок.");
+  } else {
+    setStatus(mode === "learn" ? "Верно. Продолжаем." : "Жила установлена.");
   }
 
-  // Training vs evaluate status message.
-  setStatus(mode === "learn" ? "Отлично! Продолжаем." : "Жила установлена.");
   render();
 }
 
 function onWirePointerDown(e, wireKey, el) {
   if (failLocked || connectorAttached) return;
+  if (stage !== "arrange") return;
   if (!unscrambled) return;
 
   // If this wire is already placed somewhere, ignore.
@@ -416,7 +466,6 @@ function onWirePointerDown(e, wireKey, el) {
     dragging.clone.style.left = `${x}px`;
     dragging.clone.style.top = `${y}px`;
 
-    // Training hover hint: highlight the correct slot for the dragged wire.
     if (mode === "learn" && !failLocked && !connectorAttached) {
       const elUnder = document.elementFromPoint(ev.clientX, ev.clientY);
       const slotEl = elUnder ? elUnder.closest(".slot") : null;
@@ -470,7 +519,6 @@ function attachConnector() {
 
     connectorAttached = true;
     DOM.btnAttach.disabled = true;
-    DOM.btnUntangle.disabled = true;
     setAssemblyConnectorVisible(true);
     DOM.failBox.hidden = true;
 
@@ -490,7 +538,6 @@ function attachConnector() {
   if (incorrectCount > 0) {
     failLocked = true;
     connectorAttached = false;
-    DOM.btnUntangle.disabled = true;
     setAssemblyConnectorVisible(false);
 
     clearAllSlotHints();
@@ -503,26 +550,16 @@ function attachConnector() {
 
     DOM.failReason.textContent = `Неправильно расставлено: ${incorrectCount} жил(ы).`;
     DOM.failBox.hidden = false;
-    setStatus("Ошибка — попытка не зачтена.");
+    setStatus("Ошибка - попытка не зачтена.");
     DOM.btnAttach.disabled = true;
     return;
   }
 
   connectorAttached = true;
   DOM.btnAttach.disabled = true;
-  DOM.btnUntangle.disabled = true;
   setAssemblyConnectorVisible(true);
   DOM.failBox.hidden = true;
   setStatus("Оценка: зачтено!");
-  DOM.btnBackToLearnEval.disabled = true;
-  DOM.btnBackToLearnEval.hidden = true;
-}
-
-function untanglePairs() {
-  if (failLocked || connectorAttached) return;
-  unscrambled = true;
-  setStatus(mode === "learn" ? "Распутано. Разложите жилы по T568B." : "Распутано. Разложите жилы без подсказок.");
-  render();
 }
 
 function resetLearnAndStartOver() {
@@ -547,26 +584,15 @@ function backToLearnFromFail() {
   setStatus("Вернулись в обучение. Пройдите подсказки и затем снова перейдёте к оценке.");
 }
 
-function backToLearnFromEvaluate() {
-  // User explicitly “forgot” and wants to retrain before continuing evaluation.
-  trainingCompleted = false;
-  setMode("learn");
-  resetStateForMode("learn");
-  setStatus("Вернулись в обучение. Пройдите подсказки и затем снова начнёте оценку.");
-}
-
 // Events
-DOM.btnUntangle.addEventListener("click", untanglePairs);
 DOM.btnResetLearn.addEventListener("click", resetLearnAndStartOver);
 DOM.btnAttach.addEventListener("click", attachConnector);
 DOM.btnRetry.addEventListener("click", retryEvaluate);
 DOM.btnBackToLearn.addEventListener("click", backToLearnFromFail);
-DOM.btnBackToLearnEval.addEventListener("click", backToLearnFromEvaluate);
-
 DOM.btnModeLearn.addEventListener("click", () => {
   setMode("learn");
   resetStateForMode("learn");
-  setStatus("Режим обучения. Подсказки включены. Нажмите “Распутать пары”.");
+  setStatus("Режим обучения. Подсказки включены. Сначала распутайте 4 пары (клик по запутанным).");
 });
 
 DOM.btnModeEvaluate.addEventListener("click", () => {
@@ -576,15 +602,16 @@ DOM.btnModeEvaluate.addEventListener("click", () => {
   connectorAttached = false;
   setMode("evaluate");
   resetStateForMode("evaluate");
-  setStatus("Оценка: подсказки отключены. Нажмите “Распутать пары”.");
+  setStatus("Оценка: подсказки отключены. Сначала распутайте 4 пары (клик по запутанным).");
 });
 
 // Start
 function init() {
   setMode("learn");
   resetStateForMode("learn");
-  setStatus("Подсказки включены. Нажмите “Распутать пары”.");
+  setStatus("Задача: распутайте 4 пары жил (кликните по каждой запутанной паре над кабелем).");
   DOM.btnResetLearn.style.display = "inline-flex";
 }
 
 init();
+
