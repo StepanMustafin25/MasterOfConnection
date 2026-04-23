@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Оптический тренажёр — прототип</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="game" aria-label="Браузерная игра-тренажёр">
+      <div class="frame" aria-label="Игровое поле 1280 на 800">
+
+        <div class="info" aria-label="Окно сообщений">
+          <output class="status" aria-live="polite" aria-atomic="true"></output>
+        </div>
+
+        <div class="table" aria-label="Стол">
+          <img class="table__img" src="./assets/table.png" alt="" />
+
+          <div class="cord-grid" role="list" aria-label="Варианты патч-кордов">
+            <div class="cord-item" role="listitem">
+              <button
+                class="cord"
+                type="button"
+                data-cord-id="sc-upc_sc-upc"
+                data-label="SC UPC/SC UPC"
+                aria-label="Патч-корд SC UPC/SC UPC"
+              >
+                <img src="./assets/cord_sc-upc_sc-upc.png" alt="" draggable="false" />
+              </button>
+              <div class="cord-label">SC UPC/SC UPC</div>
+            </div>
+
+            <div class="cord-item" role="listitem">
+              <button
+                class="cord"
+                type="button"
+                data-cord-id="sc-apc_fc-upc"
+                data-label="SC APC/FC UPC"
+                aria-label="Патч-корд SC APC/FC UPC"
+              >
+                <img src="./assets/cord_sc-apc_fc-upc.png" alt="" draggable="false" />
+              </button>
+              <div class="cord-label">SC APC/FC UPC</div>
+            </div>
+
+            <div class="cord-item" role="listitem">
+              <button
+                class="cord"
+                type="button"
+                data-cord-id="sc-upc_sc-apc"
+                data-label="SC UPC/SC APC"
+                aria-label="Патч-корд SC UPC/SC APC"
+              >
+                <img src="./assets/cord_sc-upc_sc-apc.png" alt="" draggable="false" />
+              </button>
+              <div class="cord-label">SC UPC/SC APC</div>
+            </div>
+
+            <div class="cord-item" role="listitem">
+              <button
+                class="cord"
+                type="button"
+                data-cord-id="sc-apc_sc-apc"
+                data-label="SC APC/SC APC"
+                aria-label="Патч-корд SC APC/SC APC"
+              >
+                <img src="./assets/cord_sc-apc_sc-apc.png" alt="" draggable="false" />
+              </button>
+              <div class="cord-label">SC APC/SC APC</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls" aria-label="Кнопки управления">
+          <button class="ui-btn ui-btn--check" type="button" data-action="check">Проверка</button>
+          <button class="ui-btn ui-btn--reset" type="button" data-action="reset">Сброс</button>
+        </div>
+
+        <div class="wall" aria-label="Стена">
+          <img class="wall__img" src="./assets/wall.png" alt="" />
+          <img class="socket" src="./assets/socket.png" alt="Абонентская розетка" />
+          <img class="meter" src="./assets/meter.png" alt="Измеритель мощности" />
+
+          <div class="wall__placed" aria-hidden="true"></div>
+
+          <div class="dropzone dropzone--wall" data-zone="wall" aria-label="Зона для патч-корда"></div>
+        </div>
+      </div>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
